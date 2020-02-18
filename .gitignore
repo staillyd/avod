@@ -32,3 +32,5 @@ avod.egg-info/
 
 # tf_profiler
 *.json
+
+data/

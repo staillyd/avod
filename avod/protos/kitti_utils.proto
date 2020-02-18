@@ -21,7 +21,7 @@ message KittiUtilsConfig {
 }
 
 message BevGenerator {
-    oneof bev_maps_type {
+    oneof bev_maps_type {//设置oneof字段将自动清除oneof字段的所有其他成员:赋值后清空其他成员
         Slices slices = 1;
     }
 

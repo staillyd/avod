@@ -54,7 +54,7 @@ def tile_anchors_3d(area_extents,
         boxes: list of 3D anchors in box_3d format N x [x, y, z, l, w, h, ry]
     """
     # Convert sizes to ndarray
-    anchor_3d_sizes = np.asarray(anchor_3d_sizes)
+    anchor_3d_sizes = np.asarray(anchor_3d_sizes)#每一类别所有样本的长宽高聚类中心
 
     anchor_stride_x = anchor_stride[0]
     anchor_stride_z = anchor_stride[1]
@@ -67,31 +67,31 @@ def tile_anchors_3d(area_extents,
 
     z_start = area_extents[2][1] - anchor_stride[1] / 2.0
     z_end = area_extents[2][0]
-    z_centers = np.array(np.arange(z_start, z_end, step=-anchor_stride_z),
+    z_centers = np.array(np.arange(z_start, z_end, step=-anchor_stride_z),#z轴为什么要逆着来???
                          dtype=np.float32)
 
     # Use ranges for substitution
-    size_indices = np.arange(0, len(anchor_3d_sizes))
-    rotation_indices = np.arange(0, len(anchor_rotations))
+    size_indices = np.arange(0, len(anchor_3d_sizes))#[0,1]
+    rotation_indices = np.arange(0, len(anchor_rotations))#[0,1]
 
     # Generate matrix for substitution
     # e.g. for two sizes and two rotations
     # [[x0, z0, 0, 0], [x0, z0, 0, 1], [x0, z0, 1, 0], [x0, z0, 1, 1],
     #  [x1, z0, 0, 0], [x1, z0, 0, 1], [x1, z0, 1, 0], [x1, z0, 1, 1], ...]
-    before_sub = np.stack(np.meshgrid(x_centers,
-                                      z_centers,
-                                      size_indices,
-                                      rotation_indices),
-                          axis=4).reshape(-1, 4)
+    before_sub = np.stack(np.meshgrid(x_centers,#160个
+                                      z_centers,#140个
+                                      size_indices,#2个(长宽高聚类中心点个数)
+                                      rotation_indices),#2个
+                          axis=4).reshape(-1, 4)#笛卡尔积 (160*140*2*2,4)
 
     # Place anchors on the ground plane
     a, b, c, d = ground_plane
     all_x = before_sub[:, 0]
     all_z = before_sub[:, 1]
-    all_y = -(a * all_x + c * all_z + d) / b
+    all_y = -(a * all_x + c * all_z + d) / b#plane平面的y坐标
 
     # Create empty matrix to return
-    num_anchors = len(before_sub)
+    num_anchors = len(before_sub)#第一维长度
     all_anchor_boxes_3d = np.zeros((num_anchors, 7))
 
     # Fill in x, y, z
@@ -99,10 +99,10 @@ def tile_anchors_3d(area_extents,
 
     # Fill in shapes
     sizes = anchor_3d_sizes[np.asarray(before_sub[:, 2], np.int32)]
-    all_anchor_boxes_3d[:, 3:6] = sizes
+    all_anchor_boxes_3d[:, 3:6] = sizes#长宽高聚类中心点
 
     # Fill in rotations
     rotations = anchor_rotations[np.asarray(before_sub[:, 3], np.int32)]
     all_anchor_boxes_3d[:, 6] = rotations
 
-    return all_anchor_boxes_3d
+    return all_anchor_boxes_3d#一系列[x, y, z, l, w, h, ry] 其中y是plane平面内的anchor,(l,w,h)当前类的长宽高聚类中心点,ry是旋转角度(0或pi/2)

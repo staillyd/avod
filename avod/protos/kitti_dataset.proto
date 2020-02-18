@@ -24,7 +24,7 @@ message KittiDatasetConfig {
     optional string cluster_split = 6 [default = "train"];
 
     // Classes to be classified (e.g. ['Car', 'Pedestrian', 'Cyclist']
-    repeated string classes = 7;
+    repeated string classes = 7;//类似[],长度不定
 
     // Number of clusters corresponding to each class (e.g. [2, 1, 2])
     repeated int32 num_clusters = 8;

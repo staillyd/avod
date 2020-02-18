@@ -91,7 +91,7 @@ class DatasetBuilder(object):
         classes=["Car"],
         num_clusters=[2],
     )
-
+    #默认的配置
     CONFIG_DEFAULTS_PROTO = \
         """
         bev_source: 'lidar'
@@ -146,8 +146,8 @@ class DatasetBuilder(object):
     @staticmethod
     def load_dataset_from_config(dataset_config_path):
 
-        dataset_config = kitti_dataset_pb2.KittiDatasetConfig()
-        with open(dataset_config_path, 'r') as f:
+        dataset_config = kitti_dataset_pb2.KittiDatasetConfig(dataset_dir='~/DataSets/KITTI/object')
+        with open(dataset_config_path, 'r') as f:#从相应的文件读取数据到 proto文件设定的数据结构中,保存为dataset_config
             text_format.Merge(f.read(), dataset_config)
 
         return DatasetBuilder.build_kitti_dataset(dataset_config,
@@ -166,7 +166,7 @@ class DatasetBuilder(object):
     @staticmethod
     def build_kitti_dataset(base_cfg,
                             use_defaults=True,
-                            new_cfg=None) -> KittiDataset:
+                            new_cfg=None) -> KittiDataset:#这是什么语法??
         """Builds a KittiDataset object using the provided configurations
 
         Args:

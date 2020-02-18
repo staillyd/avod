@@ -60,6 +60,8 @@ class MiniBatchPreprocessor(object):
         Args:
             all_anchor_boxes_3d: list of anchors in box_3d format
                 N x [x, y, z, l, w, h, ry]
+                其中所有anchor x从小到大,z从大到小,y是plane平面内与x,z对应的体素坐标
+                (l,w,h)当前类的长宽高聚类中心点,ry是旋转角度(0或pi/2)
             empty_anchor_filter: boolean mask of which anchors are non empty
             gt_labels: list of Object Label data format containing ground truth
                 labels to generate positives/negatives from.
@@ -75,12 +77,11 @@ class MiniBatchPreprocessor(object):
 
         # Filter empty anchors
         anchor_indices = np.where(empty_anchor_filter)[0]
-        anchor_boxes_3d = all_anchor_boxes_3d[empty_anchor_filter]
-
+        anchor_boxes_3d = all_anchor_boxes_3d[empty_anchor_filter]#保留在体素网格系中存在点云的体素
         # Convert anchor_boxes_3d to anchor format
         anchors = box_3d_encoder.box_3d_to_anchor(anchor_boxes_3d)
 
-        # Convert gt to boxes_3d -> anchors -> iou format
+        # Convert ground_ture to boxes_3d -> anchors -> iou format
         gt_boxes_3d = np.asarray(
             [box_3d_encoder.object_label_to_box_3d(gt_obj)
              for gt_obj in gt_labels])
@@ -91,7 +92,7 @@ class MiniBatchPreprocessor(object):
         if rpn_iou_type == '2d':
             # Convert anchors to 2d iou format
             anchors_for_2d_iou, _ = np.asarray(anchor_projector.project_to_bev(
-                anchors, kitti_utils.bev_extents))
+                anchors, kitti_utils.bev_extents))#anchors_for_2d_iou:[x1,z1,x2,z2]
 
             gt_boxes_for_2d_iou, _ = anchor_projector.project_to_bev(
                 gt_anchors, kitti_utils.bev_extents)
@@ -111,10 +112,10 @@ class MiniBatchPreprocessor(object):
         all_info = np.zeros((num_anchors,
                              self.mini_batch_utils.col_length))
 
-        # Update anchor indices
+        # Update anchor indices 在体素网格系中存在点云的体素index
         all_info[:, self.mini_batch_utils.col_anchor_indices] = anchor_indices
 
-        # For each of the labels, generate samples
+        # For each of the labels, generate samples  对label文件中的每行
         for gt_idx in range(len(gt_labels)):
 
             gt_obj = gt_labels[gt_idx]
@@ -124,13 +125,13 @@ class MiniBatchPreprocessor(object):
             if self.mini_batch_utils.rpn_iou_type == '2d':
                 gt_box_for_2d_iou = gt_boxes_for_2d_iou[gt_idx]
                 ious = evaluation.two_d_iou(gt_box_for_2d_iou,
-                                            anchors_for_2d_iou)
+                                            anchors_for_2d_iou)#求IOU
             elif self.mini_batch_utils.rpn_iou_type == '3d':
                 gt_box_for_3d_iou = gt_boxes_for_3d_iou[gt_idx]
                 ious = evaluation.three_d_iou(gt_box_for_3d_iou,
                                               anchors_for_3d_iou)
 
-            # Only update indices with a higher iou than before
+            # Only update indices with a higher iou than before 
             update_indices = np.greater(
                 ious, all_info[:, self.mini_batch_utils.col_ious])
 
@@ -150,13 +151,13 @@ class MiniBatchPreprocessor(object):
             # Update anchors info (indices already updated)
             # [index, iou, (offsets), class_index]
             all_info[update_indices,
-                     self.mini_batch_utils.col_ious] = ious_to_update
+                     self.mini_batch_utils.col_ious] = ious_to_update#对每个anchor保留与gt每个目标中的最大IOU
 
             all_info[update_indices,
                      self.mini_batch_utils.col_offsets_lo:
-                     self.mini_batch_utils.col_offsets_hi] = offsets
+                     self.mini_batch_utils.col_offsets_hi] = offsets#位移量/anchor长、log(gt_长/anchor_长)
             all_info[update_indices,
-                     self.mini_batch_utils.col_class_idx] = class_idx
+                     self.mini_batch_utils.col_class_idx] = class_idx#对每个anchor保留与gt每个目标中的最大IOU对应的class
 
         return all_info
 
@@ -183,7 +184,7 @@ class MiniBatchPreprocessor(object):
         # Get clusters for class
         all_clusters_sizes, _ = dataset.get_cluster_info()
 
-        anchor_generator = grid_anchor_3d_generator.GridAnchor3dGenerator()
+        anchor_generator = grid_anchor_3d_generator.GridAnchor3dGenerator()#新建对象
 
         # Load indices of data_split
         all_samples = dataset.sample_list
@@ -195,7 +196,7 @@ class MiniBatchPreprocessor(object):
         # For each image in the dataset, save info on the anchors
         for sample_idx in indices:
             # Get image name for given cluster
-            sample_name = all_samples[sample_idx].name
+            sample_name = all_samples[sample_idx].name#训练样本的文件名
             img_idx = int(sample_name)
 
             # Check for existing files and skip to the next
@@ -205,7 +206,7 @@ class MiniBatchPreprocessor(object):
                     sample_idx + 1, num_samples, sample_name))
                 continue
 
-            # Get ground truth and filter based on difficulty
+            # Get ground truth and filter based on difficulty 读取label文件
             ground_truth_list = obj_utils.read_labels(dataset.label_dir,
                                                       img_idx)
 
@@ -224,7 +225,7 @@ class MiniBatchPreprocessor(object):
                 self._save_to_file(classes_name, anchor_strides, sample_name)
                 continue
 
-            # Get ground plane
+            # Get ground plane 读取对应的avod自带plane(水平面)的信息
             ground_plane = obj_utils.get_road_plane(img_idx,
                                                     dataset.planes_dir)
 
@@ -232,6 +233,7 @@ class MiniBatchPreprocessor(object):
             image_shape = [image.size[1], image.size[0]]
 
             # Generate sliced 2D voxel grid for filtering
+            # 创建体素网，网格内包含点云则用0表示，不包含点云则用-1表示
             vx_grid_2d = dataset_utils.create_sliced_voxel_grid_2d(
                 sample_name,
                 source=dataset.bev_source,
@@ -243,6 +245,8 @@ class MiniBatchPreprocessor(object):
             # Create anchors for each class
             for class_idx in range(len(dataset.classes)):
                 # Generate anchors for all classes
+                # 返回一系列[x, y, z, l, w, h, ry] 其中所有anchor x从小到大,z从大到小,y是plane平面内与x,z对应的体素坐标
+                # (l,w,h)当前类的长宽高聚类中心点,ry是旋转角度(0或pi/2)
                 grid_anchor_boxes_3d = anchor_generator.generate(
                     area_3d=self._area_extents,
                     anchor_3d_sizes=all_clusters_sizes[class_idx],
@@ -253,9 +257,9 @@ class MiniBatchPreprocessor(object):
 
             # Filter empty anchors
             all_anchor_boxes_3d = np.asarray(all_anchor_boxes_3d)
-            anchors = box_3d_encoder.box_3d_to_anchor(all_anchor_boxes_3d)
+            anchors = box_3d_encoder.box_3d_to_anchor(all_anchor_boxes_3d)#解码成[x, y, z, dim_x, dim_y, dim_z]形式
             empty_anchor_filter = anchor_filter.get_empty_anchor_filter_2d(
-                anchors, vx_grid_2d, self._density_threshold)
+                anchors, vx_grid_2d, self._density_threshold)#在anchor里体素点个数大于density_threshold时为true
 
             # Calculate anchor info
             anchors_info = self._calculate_anchors_info(

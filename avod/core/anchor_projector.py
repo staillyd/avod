@@ -16,7 +16,7 @@ def project_to_bev(anchors, bev_extents):
 
     Args:
         anchors: list of anchors in anchor format (N x 6):
-            N x [x, y, z, dim_x, dim_y, dim_z],
+            N x [x, y, z, dim_x, dim_y, dim_z],# dim_x, dim_y, dim_z  anchor的x,y,z方向的长宽高
             can be a numpy array or tensor
         bev_extents: xz extents of the 3d area
             [[min_x, max_x], [min_z, max_z]]
@@ -46,9 +46,9 @@ def project_to_bev(anchors, bev_extents):
     # 2D corners (top left, bottom right)
     x1 = x - half_dim_x
     x2 = x + half_dim_x
-    # Flip z co-ordinates (origin changes from bottom left to top left)
-    z1 = bev_z_extents_max - (z + half_dim_z)
-    z2 = bev_z_extents_max - (z - half_dim_z)
+    # Flip z co-ordinates (origin changes from bottom left to top left)翻转z轴，为什么???原来原点就是在左上啊
+    z1 = bev_z_extents_max - (z + half_dim_z) #和z - half_dim_z效果一样
+    z2 = bev_z_extents_max - (z - half_dim_z) #和z + half_dim_z效果一样，返回是给evalution.two_d_iou的，目的是求交集的x1,y1,x2,y2
 
     # Stack into (N x 4)
     if tensor_format:
@@ -66,7 +66,7 @@ def project_to_bev(anchors, bev_extents):
                      bev_x_extents_range, bev_z_extents_range]
     bev_box_corners_norm = bev_box_corners / extents_tiled
 
-    return bev_box_corners, bev_box_corners_norm
+    return bev_box_corners, bev_box_corners_norm#anchor对应的box的[x1,z1,x2,z2]
 
 
 def project_to_image_space(anchors, stereo_calib_p2, image_shape):

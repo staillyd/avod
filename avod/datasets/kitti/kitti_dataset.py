@@ -42,7 +42,7 @@ class KittiDataset:
 
         self.name = self.config.name
         self.data_split = self.config.data_split
-        self.dataset_dir = os.path.expanduser(self.config.dataset_dir)
+        self.dataset_dir = os.path.expanduser(self.config.dataset_dir)#绝对路径
         data_split_dir = self.config.data_split_dir
 
         self.has_labels = self.config.has_labels
@@ -72,7 +72,7 @@ class KittiDataset:
         all_files = os.listdir(self.dataset_dir)
 
         # Get possible data splits from txt files in dataset folder
-        possible_splits = []
+        possible_splits = []#保存avod自带的train.txt等txt文件的 不带后缀的文件名
         for file_name in all_files:
             if fnmatch.fnmatch(file_name, '*.txt'):
                 possible_splits.append(os.path.splitext(file_name)[0])
@@ -86,13 +86,13 @@ class KittiDataset:
 
         # Check data_split_dir
         # Get possible data split dirs from folder names in dataset folder
-        possible_split_dirs = []
+        possible_split_dirs = []#保存x/KITTI/object下的文件夹名
         for folder_name in all_files:
             if os.path.isdir(self.dataset_dir + '/' + folder_name):
                 possible_split_dirs.append(folder_name)
         if data_split_dir in possible_split_dirs:
             split_dir = self.dataset_dir + '/' + data_split_dir
-            self._data_split_dir = split_dir
+            self._data_split_dir = split_dir #x/KITTI/object/training文件夹绝对路径
         else:
             raise ValueError(
                 "Invalid data split dir: {}, possible dirs".format(
@@ -105,27 +105,27 @@ class KittiDataset:
         self._cam_idx = 2
 
         # Initialize the sample list
-        loaded_sample_names = self.load_sample_names(self.data_split)
+        loaded_sample_names = self.load_sample_names(self.data_split)#保存trainval.txt里的内容,numpy形式
 
         # Augment the sample list
-        aug_sample_list = []
+        aug_sample_list = []#保存"trainval.txt里的内容"和"aug_list的组合"的组合
 
         # Loop through augmentation lengths e.g.
         # 0: []
         # 1: ['flip'], ['pca_jitter']
         # 2: ['flip', 'pca_jitter']
         for aug_idx in range(len(self.aug_list) + 1):
-            # Get all combinations
+            # Get all combinations 组合 
             augmentations = list(itertools.combinations(self.aug_list,
-                                                        aug_idx))
+                                                        aug_idx))#返回iterable中所有长度为r的子序列，返回的子序列中的项按输入iterable中的顺序排序。
             for augmentation in augmentations:
-                for sample_name in loaded_sample_names:
+                for sample_name in loaded_sample_names:#组合"trainval.txt里的内容"和"aug_list的组合"
                     aug_sample_list.append(Sample(sample_name, augmentation))
 
-        self.sample_list = np.asarray(aug_sample_list)
+        self.sample_list = np.asarray(aug_sample_list)#保存"trainval.txt里的内容"和"aug_list的组合"的组合
         self.num_samples = len(self.sample_list)
 
-        self._set_up_directories()
+        self._set_up_directories()#保存存放数据的文件夹绝对路径
 
         # Setup utils object
         self.kitti_utils = KittiUtils(self)
@@ -161,10 +161,10 @@ class KittiDataset:
         # Setup Directories
         self.image_dir = self._data_split_dir + '/image_' + str(self._cam_idx)
         self.calib_dir = self._data_split_dir + '/calib'
-        self.disp_dir = self._data_split_dir + '/disparity'
+        self.disp_dir = self._data_split_dir + '/disparity'#???
         self.planes_dir = self._data_split_dir + '/planes'
         self.velo_dir = self._data_split_dir + '/velodyne'
-        self.depth_dir = self._data_split_dir + '/depth_' + str(self._cam_idx)
+        self.depth_dir = self._data_split_dir + '/depth_' + str(self._cam_idx)#???
 
         # Labels are always in the training folder
         self.label_dir = self.dataset_dir + \

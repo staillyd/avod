@@ -1,12 +1,13 @@
 import os
-
+import sys
 import numpy as np
-
+sys.path.append(os.path.abspath('.'))
+sys.path.append(os.path.abspath('./wavedata'))
 import avod
 from avod.builders.dataset_builder import DatasetBuilder
 
 
-def do_preprocessing(dataset, indices):
+def do_preprocessing(dataset, indices):#对每个mini batch生成rpn
 
     mini_batch_utils = dataset.kitti_utils.mini_batch_utils
 
@@ -40,7 +41,7 @@ def split_indices(dataset, num_children):
 
     # Split and trim last set of indices to original length
     indices_split = np.split(padded_indices, num_children)
-    indices_split[-1] = np.trim_zeros(indices_split[-1])
+    indices_split[-1] = np.trim_zeros(indices_split[-1])#删去之前添加的多余的0
 
     return indices_split
 
@@ -57,10 +58,10 @@ def split_work(all_child_pids, dataset, indices_split, num_children):
     """
 
     for child_idx in range(num_children):
-        new_pid = os.fork()
-        if new_pid:
+        new_pid = os.fork()#父进程创建子进程，父进程返回pid值，子进程完全拷贝父进程，但返回值为0
+        if new_pid:#父进程
             all_child_pids.append(new_pid)
-        else:
+        else:#子进程
             indices = indices_split[child_idx]
             print('child', dataset.classes,
                   indices_split[child_idx][0],
@@ -98,7 +99,7 @@ def main(dataset=None):
     # Options
     ##############################
     # Serial vs parallel processing
-    in_parallel = True
+    in_parallel = False#是否采用多线程
 
     process_car = True   # Cars
     process_ped = False  # Pedestrians
@@ -153,8 +154,8 @@ def main(dataset=None):
 
         # Cars
         if process_car:
-            car_indices_split = split_indices(car_dataset, num_car_children)
-            split_work(
+            car_indices_split = split_indices(car_dataset, num_car_children)#将数据集的索引分为num_car_children份
+            split_work(#新建num_car_children个线程，每个线程do_preprocessing(对应分配的car_dataset部分)
                 all_child_pids,
                 car_dataset,
                 car_indices_split,

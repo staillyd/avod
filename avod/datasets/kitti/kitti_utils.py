@@ -24,7 +24,7 @@ class KittiUtils(object):
         self.dataset = dataset
 
         # Label Clusters
-        self.label_cluster_utils = LabelClusterUtils(self.dataset)
+        self.label_cluster_utils = LabelClusterUtils(self.dataset)#定义一个初始LabelClusterUtils
 
         self.clusters, self.std_devs = [None, None]
 
@@ -54,7 +54,7 @@ class KittiUtils(object):
         self.mini_batch_utils = MiniBatchUtils(self.dataset)
         self._mini_batch_dir = self.mini_batch_utils.mini_batch_dir
 
-        # Label Clusters
+        # Label Clusters 对标签进行聚类，得到每个类的x个聚类中心点
         self.clusters, self.std_devs = \
             self.label_cluster_utils.get_clusters()
 
@@ -95,6 +95,7 @@ class KittiUtils(object):
         """
 
         # Filter points within certain xyz range and offset from ground plane
+        # 保留在x,y,z范围里并且在offset_dist以下的点云
         offset_filter = obj_utils.get_point_filter(point_cloud, area_extents,
                                                    ground_plane, offset_dist)
 
@@ -103,6 +104,7 @@ class KittiUtils(object):
                                                  ground_plane,
                                                  ground_offset_dist)
 
+        #保留在x,y,z范围里并且在[ground_offset_dist,offset_dist]的点云
         slice_filter = np.logical_xor(offset_filter, road_filter)
         return slice_filter
 
@@ -133,10 +135,12 @@ class KittiUtils(object):
         return anchors_info
 
     def get_point_cloud(self, source, img_idx, image_shape=None):
-        """ Gets the points from the point cloud for a particular image,
+        """ [wrong]Gets the points from the point cloud for a particular image,
             keeping only the points within the area extents, and takes a slice
             between self._ground_filter_offset and self._offset_distance above
             the ground plane
+            [right]点云->相机->像素(坐标)->图片(保留投影在图片里的点云投影坐标),
+            返回在图片里的三维坐标,坐标在相机坐标系下
 
         Args:
             source: point cloud source, e.g. 'lidar'
@@ -152,6 +156,8 @@ class KittiUtils(object):
             # wavedata wants im_size in (w, h) order
             im_size = [image_shape[1], image_shape[0]]
 
+            # 点云->相机->像素(坐标)->图片(保留投影在图片里的点云投影坐标) 
+            # 返回在图片里的三维坐标,坐标在相机坐标系下
             point_cloud = obj_utils.get_lidar_point_cloud(
                 img_idx, self.dataset.calib_dir, self.dataset.velo_dir,
                 im_size=im_size)
@@ -214,8 +220,9 @@ class KittiUtils(object):
             Points filtered with a slice filter in the shape (N, 3)
         """
 
+        #保留在x,y,z范围里并且高度在[height_lo,height_hi]的点云
         slice_filter = self.create_slice_filter(point_cloud,
-                                                self.area_extents,
+                                                self.area_extents,#rpn config文件里
                                                 ground_plane,
                                                 height_lo, height_hi)
 
@@ -243,11 +250,18 @@ class KittiUtils(object):
         ground_plane = obj_utils.get_road_plane(img_idx,
                                                 self.dataset.planes_dir)
 
+        # 点云->相机->像素(坐标)->图片(保留投影在图片里的点云投影坐标)
+        # 返回在图片里的点云三维坐标,坐标在相机坐标系下
         point_cloud = self.get_point_cloud(source, img_idx,
                                            image_shape=image_shape)
-        filtered_points = self._apply_slice_filter(point_cloud, ground_plane)
+        filtered_points = self._apply_slice_filter(point_cloud, ground_plane)#保留在x,y,z范围里并且高度在[height_lo,height_hi]的点云
 
-        # Create Voxel Grid
+        # 将point_cloud等投影到图片里，并显示
+        # TODO
+
+        # Create Voxel Grid 
+        # 将点云坐标离散化为体素voxel，相当于将空间划分为voxel_size大小的网格，统计在网格里的点云个数，网格坐标voxel_coords只保留一个。
+        # 创建体素网，网格内包含点云则用0表示，不包含点云则用-1表示
         voxel_grid_2d = VoxelGrid2D()
         voxel_grid_2d.voxelize_2d(filtered_points, self.voxel_size,
                                   extents=self.area_extents,

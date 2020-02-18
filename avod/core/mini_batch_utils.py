@@ -15,7 +15,7 @@ class MiniBatchUtils:
         self._dataset = dataset
 
         self._mini_batch_sampler = \
-            balanced_positive_negative_sampler.BalancedPositiveNegativeSampler()
+            balanced_positive_negative_sampler.BalancedPositiveNegativeSampler()#新建一个对象
 
         ##############################
         # Parse KittiUtils config
@@ -84,7 +84,7 @@ class MiniBatchUtils:
             to the network for RPN training.
         """
 
-        clusters, _ = self._dataset.get_cluster_info()
+        clusters, _ = self._dataset.get_cluster_info()#聚类中心点信息 构建KittiUtils时对标签进行聚类，得到每个类的x个聚类中心点
 
         mini_batch_preprocessor = \
             MiniBatchPreprocessor(self._dataset,
@@ -92,7 +92,7 @@ class MiniBatchUtils:
                                   self._anchor_strides,
                                   self._density_threshold,
                                   self.rpn_neg_iou_range,
-                                  self.rpn_pos_iou_range)
+                                  self.rpn_pos_iou_range)#新建对象
 
         mini_batch_preprocessor.preprocess(indices)
 

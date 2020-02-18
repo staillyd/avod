@@ -100,7 +100,7 @@ def box_3d_to_anchor(boxes_3d, ortho_rotate=False):
     cos_ry = np.abs(np.cos(box_ry))
     sin_ry = np.abs(np.sin(box_ry))
 
-    # dim_x, dim_y, dim_z
+    # dim_x, dim_y, dim_z  anchor的x,y,z方向的长宽高
     anchors[:, [3]] = box_l * cos_ry + box_w * sin_ry
     anchors[:, [4]] = box_h
     anchors[:, [5]] = box_w * cos_ry + box_l * sin_ry

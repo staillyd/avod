@@ -160,7 +160,7 @@ class LabelClusterUtils:
 
         classes_not_loaded = []
 
-        # Try to read from file first
+        # Try to read from file first 先看是否有记录custers和std_devs的相应文件在，有则读取并返回相应内容
         for class_idx in range(len(classes)):
             clusters, std_devs = self._read_clusters_from_file(
                 self._dataset, classes[class_idx], num_clusters[class_idx])
@@ -177,11 +177,11 @@ class LabelClusterUtils:
 
         # Calculate the remaining clusters
         # Load labels corresponding to the sample list for clustering
-        sample_list = self._dataset.load_sample_names(self.cluster_split)
-        all_labels = [[] for _ in range(len(classes))]
+        sample_list = self._dataset.load_sample_names(self.cluster_split)#train.txt的文件信息
+        all_labels = [[] for _ in range(len(classes))]#保存train.txt里每一行对应所需class的label信息，存在映射关系，可看成字典
 
         num_samples = len(sample_list)
-        for sample_idx in range(num_samples):
+        for sample_idx in range(num_samples):#对每个训练样本
 
             sys.stdout.write("\rClustering labels {} / {}".format(
                 sample_idx + 1, num_samples))
@@ -191,20 +191,20 @@ class LabelClusterUtils:
             img_idx = int(sample_name)
 
             obj_labels = obj_utils.read_labels(self._dataset.label_dir,
-                                               img_idx)
+                                               img_idx)#读取对应的label文件信息
             filtered_labels = LabelClusterUtils._filter_labels_by_class(
-                obj_labels, self._dataset.classes)
+                obj_labels, self._dataset.classes)#保存当前class的长宽高信息的list:[[l,w,h],]，里面有映射关系，可看作字典
 
             for class_idx in range(len(classes)):
                 all_labels[class_idx].extend(filtered_labels[class_idx])
 
         print("\nFinished reading labels, clustering data...\n")
 
-        # Cluster
+        # Cluster 对未从文件加载的每一个需要的class 的长宽高 信息进行聚类
         for class_idx in classes_not_loaded:
-            labels_for_class = np.array(all_labels[class_idx])
+            labels_for_class = np.array(all_labels[class_idx])#所有样本里对应类的所有长宽高信息
 
-            n_clusters_for_class = num_clusters[class_idx]
+            n_clusters_for_class = num_clusters[class_idx]#config里设定的num_clusters
             if len(labels_for_class) < n_clusters_for_class:
                 raise ValueError(
                     "Number of samples is less than number of clusters "
@@ -217,14 +217,14 @@ class LabelClusterUtils:
             clusters_for_class = []
             std_devs_for_class = []
 
-            for cluster_idx in range(len(k_means.cluster_centers_)):
+            for cluster_idx in range(len(k_means.cluster_centers_)):#对每个聚类中心点
                 cluster_centre = k_means.cluster_centers_[cluster_idx]
 
                 labels_in_cluster = labels_for_class[
-                    k_means.labels_ == cluster_idx]
+                    k_means.labels_ == cluster_idx]#属于当前聚类中心点的label
 
                 # Calculate std. dev
-                std_dev = np.std(labels_in_cluster, axis=0)
+                std_dev = np.std(labels_in_cluster, axis=0)#for [i,:]
 
                 formatted_cluster = [float('%.3f' % value)
                                      for value in cluster_centre]
@@ -234,7 +234,7 @@ class LabelClusterUtils:
                 clusters_for_class.append(formatted_cluster)
                 std_devs_for_class.append(formatted_std_dev)
 
-            # Write to files
+            # Write to files 将聚类信息保存到文件
             file_path = self._get_cluster_file_path(self._dataset,
                                                     classes[class_idx],
                                                     num_clusters[class_idx])

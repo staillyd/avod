@@ -77,12 +77,12 @@ def get_empty_anchor_filter_2d(anchors, voxel_grid_2d, density_threshold=1):
     format_checker.check_anchor_format(anchors)
 
     # Remove y dimensions from anchors to project into BEV
-    anchors_2d = anchors[:, [0, 2, 3, 5]]
+    anchors_2d = anchors[:, [0, 2, 3, 5]]#anchor排序 x从小到大,z从大到小
 
     # Get Integral image of the voxel, add 1 since filled = 0, empty is -1
     leaf_layout = voxel_grid_2d.leaf_layout_2d + 1
-    leaf_layout = np.squeeze(leaf_layout)
-    integral_image = IntegralImage2D(leaf_layout)
+    leaf_layout = np.squeeze(leaf_layout)#删除长度为1的维度
+    integral_image = IntegralImage2D(leaf_layout)#新建对象，范围和体素坐标系范围一致
 
     # Make anchor container
     anchor_container = np.zeros([len(anchors_2d), 4]).astype(np.uint32)
@@ -92,7 +92,7 @@ def get_empty_anchor_filter_2d(anchors, voxel_grid_2d, density_threshold=1):
     # Set up objects containing corners of anchors
     top_left_up = np.zeros([num_anchors, 2]).astype(np.float32)
     bot_right_down = np.zeros([num_anchors, 2]).astype(np.float32)
-
+    # 每个anchor左上、右下的体素x,z坐标
     # Calculate minimum corner
     top_left_up[:, 0] = anchors_2d[:, 0] - (anchors_2d[:, 2] / 2.)
     top_left_up[:, 1] = anchors_2d[:, 1] - (anchors_2d[:, 3] / 2.)
@@ -102,21 +102,22 @@ def get_empty_anchor_filter_2d(anchors, voxel_grid_2d, density_threshold=1):
     bot_right_down[:, 1] = anchors_2d[:, 1] + (anchors_2d[:, 3] / 2.)
 
     # map_to_index() expects N x 2 points
+    #将每个anchor左上、右下的体素x,z坐标映射到在体素网格系leaf_layout_2d的索引
     anchor_container[:, :2] = voxel_grid_2d.map_to_index(
         top_left_up)
     anchor_container[:, 2:] = voxel_grid_2d.map_to_index(
         bot_right_down)
 
-    # Transpose to pass into query()
-    anchor_container = anchor_container.T
+    # Transpose to pass into query() 
+    anchor_container = anchor_container.T#(4,?):?_所有anchor、4_当前anchor左上右下体素坐标
 
     # Get point density score for each anchor
-    point_density_score = integral_image.query(anchor_container)
+    point_density_score = integral_image.query(anchor_container)#体素网在box里元素的和，即在box里体素点个数，见leaf_layout
 
     # Create the filter
     anchor_filter = point_density_score >= density_threshold
 
-    return anchor_filter
+    return anchor_filter#在anchor里体素点个数大于density_threshold时为true
 
 
 def get_iou_filter(iou_list, iou_range):
