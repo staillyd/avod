@@ -117,7 +117,7 @@ def get_empty_anchor_filter_2d(anchors, voxel_grid_2d, density_threshold=1):
     # Create the filter
     anchor_filter = point_density_score >= density_threshold
 
-    return anchor_filter#在anchor里体素点个数大于density_threshold时为true
+    return anchor_filter#在anchor里俯视图体素点个数大于density_threshold时为true
 
 
 def get_iou_filter(iou_list, iou_range):

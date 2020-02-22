@@ -259,7 +259,7 @@ class MiniBatchPreprocessor(object):
             all_anchor_boxes_3d = np.asarray(all_anchor_boxes_3d)
             anchors = box_3d_encoder.box_3d_to_anchor(all_anchor_boxes_3d)#解码成[x, y, z, dim_x, dim_y, dim_z]形式
             empty_anchor_filter = anchor_filter.get_empty_anchor_filter_2d(
-                anchors, vx_grid_2d, self._density_threshold)#在anchor里体素点个数大于density_threshold时为true
+                anchors, vx_grid_2d, self._density_threshold)#在anchor里俯视图体素点个数大于density_threshold时为true
 
             # Calculate anchor info
             anchors_info = self._calculate_anchors_info(
