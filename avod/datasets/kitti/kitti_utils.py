@@ -10,6 +10,9 @@ from avod.builders import bev_generator_builder
 from avod.core.label_cluster_utils import LabelClusterUtils
 from avod.core.mini_batch_utils import MiniBatchUtils
 
+from PIL import Image,ImageColor
+from wavedata.tools.core import calib_utils
+import matplotlib.pyplot as plt
 
 class KittiUtils(object):
     # Definition for difficulty levels
@@ -257,7 +260,9 @@ class KittiUtils(object):
         filtered_points = self._apply_slice_filter(point_cloud, ground_plane)#保留在x,y,z范围里并且高度在[height_lo,height_hi]的点云
 
         # 将point_cloud等投影到图片里，并显示
-        # TODO
+        if img_idx==23:
+            self._project_and_show(sample_name,point_cloud,"red","point_cloud")
+            self._project_and_show(sample_name,filtered_points.T,"red","filtered_points")
 
         # Create Voxel Grid 
         # 将点云坐标离散化为体素voxel，相当于将空间划分为voxel_size大小的网格，统计在网格里的点云个数，网格坐标voxel_coords只保留一个。
@@ -375,3 +380,22 @@ class KittiUtils(object):
             matches the desired class.
         """
         return obj.type in classes
+
+    def _project_and_show(self,sample_name,point_cloud,color,title):
+        "将点云投影到像素坐标，并在对应的图像中显示"
+        img_idx=int(sample_name)
+        img=Image.open(self.dataset.get_rgb_image_path(sample_name))
+        img_array=np.array(img)#np.array（默认情况下）将会copy该对象，而np.asarray除非必要，否则不会copy该对象
+        
+        frame_calib = calib_utils.read_calibration(self.dataset.calib_dir, img_idx)#读取calib文件信息并保存到对象中
+        point_in_im = calib_utils.project_to_image(point_cloud, p=frame_calib.p2).T
+        point_in_im=point_in_im[:,[1,0]]
+        point_in_im=point_in_im.astype(int)
+        img_array[point_in_im[:,0],point_in_im[:,1],:]=ImageColor.getrgb(color)#相当于zip
+
+        img=Image.fromarray(img_array)
+        img.show()
+        # plt.figure(sample_name+"_"+title,figsize=img_array.shape[:-1])
+        # plt.axis('off')
+        # plt.imshow(img_array)
+        # plt.show()
