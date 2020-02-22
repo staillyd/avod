@@ -66,7 +66,7 @@ def get_configs_from_pipeline_file(pipeline_config_path,
 
     pipeline_config = pipeline_pb2.NetworkPipelineConfig()
     with open(pipeline_config_path, 'r') as f:
-        text_format.Merge(f.read(), pipeline_config)
+        text_format.Merge(f.read(), pipeline_config)#解析config文件
 
     model_config = pipeline_config.model_config
 

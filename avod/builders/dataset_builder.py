@@ -146,7 +146,7 @@ class DatasetBuilder(object):
     @staticmethod
     def load_dataset_from_config(dataset_config_path):
 
-        dataset_config = kitti_dataset_pb2.KittiDatasetConfig(dataset_dir='~/DataSets/KITTI/object')
+        dataset_config = kitti_dataset_pb2.KittiDatasetConfig()
         with open(dataset_config_path, 'r') as f:#从相应的文件读取数据到 proto文件设定的数据结构中,保存为dataset_config
             text_format.Merge(f.read(), dataset_config)
 

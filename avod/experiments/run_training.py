@@ -5,8 +5,12 @@ This runs the DetectionModel trainer.
 
 import argparse
 import os
+import sys
 
 import tensorflow as tf
+
+sys.path.append(os.path.abspath('.'))
+sys.path.append(os.path.abspath('./wavedata'))
 
 import avod
 import avod.builders.config_builder_util as config_builder
@@ -73,7 +77,7 @@ def main(_):
     # Parse pipeline config
     model_config, train_config, _, dataset_config = \
         config_builder.get_configs_from_pipeline_file(
-            args.pipeline_config_path, is_training=True)
+            args.pipeline_config_path, is_training=True)#解析config文件，得到相应的文件数据
 
     # Overwrite data split
     dataset_config.data_split = args.data_split
