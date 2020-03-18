@@ -77,7 +77,7 @@ class MiniBatchPreprocessor(object):
 
         # Filter empty anchors
         anchor_indices = np.where(empty_anchor_filter)[0]
-        anchor_boxes_3d = all_anchor_boxes_3d[empty_anchor_filter]#保留在体素网格系中存在点云的体素
+        anchor_boxes_3d = all_anchor_boxes_3d[empty_anchor_filter]#保留在体素网格系中存在点云的anchor
         # Convert anchor_boxes_3d to anchor format
         anchors = box_3d_encoder.box_3d_to_anchor(anchor_boxes_3d)
 
@@ -210,7 +210,7 @@ class MiniBatchPreprocessor(object):
             ground_truth_list = obj_utils.read_labels(dataset.label_dir,
                                                       img_idx)
 
-            # Filter objects to dataset classes
+            # Filter objects to dataset classes 获取当前帧里指定class的gt label信息
             filtered_gt_list = dataset_utils.filter_labels(ground_truth_list)
             filtered_gt_list = np.asarray(filtered_gt_list)
 

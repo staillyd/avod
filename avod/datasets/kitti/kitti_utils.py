@@ -335,7 +335,7 @@ class KittiUtils(object):
         if classes is None:
             classes = self.dataset.classes
 
-        objects = np.asanyarray(objects)
+        objects = np.asanyarray(objects)#gt label info
         filter_mask = np.ones(len(objects), dtype=np.bool)
 
         for obj_idx in range(len(objects)):
